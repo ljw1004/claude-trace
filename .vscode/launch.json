@@ -1,0 +1,15 @@
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "type": "bun",
+            "request": "launch",
+            "name": "claude-trace",
+            "program": "${workspaceFolder}/claude-trace.ts",
+            "args": [],
+            "cwd": "${workspaceFolder}",
+            "runtime": "bun",
+            "stopOnEntry": true
+        }
+    ]
+}
