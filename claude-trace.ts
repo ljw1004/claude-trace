@@ -379,7 +379,7 @@ function tryParseAsBedrock(body: Uint8Array): StreamEvent[] | undefined {
       return undefined;
     }
     if (typeof wrapper.bytes !== 'string') {
-      continue;
+      return undefined;
     }
     let data: unknown;
     try {
