@@ -115,11 +115,15 @@ function renderPayload(elements) {
     const eOutput = deltaField(e, 'output');
     const eArguments = deltaField(e, 'arguments');
     const eInput = deltaField(e, 'input');
+    const eMessage = deltaField(e, 'message') ?? deltaField(e, 'delta');
     const eName = deltaField(e, 'name');
     const eType = deltaField(e, 'type');
     const marker = deltaMarker(e);
     if (e === '...' || e === '...*' || e === '---') {
       continue;
+    } else if (eMessage && typeof eMessage === 'object') {
+      // OpenAI chat-completion choices wrap the assistant message in here
+      payload.push(...renderPayload([eMessage]));
     } else if (
       eType === 'message' ||
       (eType === undefined && e.role !== undefined && eContent !== undefined)
@@ -204,7 +208,9 @@ function render(data, label) {
       open: data._purpose !== '[meta]',
     };
   } else if (data?._kind === 'response') {
-    const payload = renderPayload(deltaField(data, 'output') ?? deltaField(data, 'content'));
+    const payload = renderPayload(
+      deltaField(data, 'output') ?? deltaField(data, 'content') ?? deltaField(data, 'choices'),
+    );
     const raw = {...data};
     delete raw._kind;
     const title = `RESPONSE${id}${purpose}`;
