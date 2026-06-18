@@ -1,7 +1,7 @@
 /**
- * Rendering library for codex-trace logs.
+ * Rendering library for claude-trace logs.
  *
- * A codex-trace log is a sequence of jsonl lines in an unterminated `<!` + `--` comment at the end of an HTML document.
+ * A claude-trace log is a sequence of jsonl lines in an unterminated `<!` + `--` comment at the end of an HTML document.
  * This module extracts that log and renders each line as a collapsible tree-structure.
  *
  * There's a little bit of cleverness. This module uses a `render()` function to determine how nodes in the tree
@@ -12,7 +12,7 @@
  * as "▷ TITLE: INLINE" when collapsed, or "▽ TITLE" when expanded, with 'body' an object/array/primitive for
  * the contents of that expanded node. The `open` flag says whether it should be initially expanded.
  *
- * This module has special handling for REQUEST and RESPONSE json payloads for Codex's communication with an LLM.
+ * This module has special handling for REQUEST and RESPONSE json payloads for Claude's communication with an LLM.
  */
 
 const TITLE = Symbol('TITLE');
@@ -52,7 +52,9 @@ function ts(data) {
  * Puts a string onto a single line and truncates to 80 chars, for display in INLINE part of a node
  */
 function short(s) {
-  return String(s ?? '').replace(/\n/g, ' ').slice(0, 80);
+  return String(s ?? '')
+    .replace(/\n/g, ' ')
+    .slice(0, 80);
 }
 
 /**
@@ -66,7 +68,8 @@ function contentText(contents) {
   for (const c of contents ?? []) {
     const type = c && typeof c === 'object' ? deltaField(c, 'type') : undefined;
     const text = c && typeof c === 'object' ? deltaField(c, 'text') : c;
-    if (type === 'input_text' || type === 'output_text' || type === 'text') r.push(String(text ?? ''));
+    if (type === 'input_text' || type === 'output_text' || type === 'text')
+      r.push(String(text ?? ''));
     else r.push(`[${String(type ?? '?')}]`);
   }
   return r.join('\n');
@@ -117,9 +120,12 @@ function renderPayload(elements) {
     const marker = deltaMarker(e);
     if (e === '...' || e === '...*' || e === '---') {
       continue;
-    } else if (eType === 'message' || (eType === undefined && e.role !== undefined && eContent !== undefined)) {
+    } else if (
+      eType === 'message' ||
+      (eType === undefined && e.role !== undefined && eContent !== undefined)
+    ) {
       const contents = Array.isArray(eContent) ? eContent : [eContent];
-      contents.forEach((content) => {
+      contents.forEach(content => {
         if (content === '...' || content === '...*' || content === '---') {
           return;
         }
@@ -136,18 +142,22 @@ function renderPayload(elements) {
         [INLINE]: esc(short(String(eText ?? ''))),
         body: eText,
       });
-
     } else if (eType === 'function_call_output' || eType === 'tool_result') {
-      const result = (eType === 'function_call_output') ? 
-      (typeof eOutput === 'string' ? eOutput : JSON.stringify(eOutput ?? ''))
-      : typeof eContent === 'string' ? eContent : contentText(eContent);
+      const result =
+        eType === 'function_call_output'
+          ? typeof eOutput === 'string'
+            ? eOutput
+            : JSON.stringify(eOutput ?? '')
+          : typeof eContent === 'string'
+            ? eContent
+            : contentText(eContent);
       payload.push({
         [TITLE]: marker,
         [INLINE]: `${esc(eType)}: ${esc(short(result))}`,
         body: e,
       });
     } else if (eType === 'function_call' || eType === 'tool_use') {
-      let arg = "";
+      let arg = '';
       try {
         const raw = eType === 'function_call' ? JSON.parse(eArguments) : eInput;
         const rawArg = raw?.cmd ?? raw?.pattern ?? raw;
