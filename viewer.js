@@ -68,9 +68,14 @@ function contentText(contents) {
   for (const c of contents ?? []) {
     const type = c && typeof c === 'object' ? deltaField(c, 'type') : undefined;
     const text = c && typeof c === 'object' ? deltaField(c, 'text') : c;
-    if (type === 'input_text' || type === 'output_text' || type === 'text')
+    if (type === 'input_text') {
+      const raw = String(text ?? '');
+      const divider = '## My request for Codex:';
+      const i = raw.indexOf(divider);
+      r.push(i < 0 ? raw : raw.slice(i + divider.length).replace(/^\s+/, ''));
+    } else if (type === 'output_text' || type === 'text') {
       r.push(String(text ?? ''));
-    else r.push(`[${String(type ?? '?')}]`);
+    } else r.push(`[${String(type ?? '?')}]`);
   }
   return r.join('\n');
 }
@@ -196,6 +201,11 @@ function renderPayload(elements) {
 function render(data, label) {
   const id = data?._id !== undefined ? ` #${esc(String(data._id))}` : '';
   const purpose = data?._purpose ? ` ${esc(String(data._purpose))}` : '';
+  const isPrimary =
+    data?._purpose === undefined ||
+    data?._purpose === '' ||
+    data?._purpose === '[turn]' ||
+    data?._purpose === '[/responses]';
   if (data?.[TITLE] !== undefined) {
     return data;
   } else if (data?._kind === 'request') {
@@ -204,9 +214,9 @@ function render(data, label) {
     delete raw._kind;
     const title = `REQUEST${id}${purpose}`;
     return {
-      [TITLE]: `[${esc(ts(data))}] ${data._purpose === '[meta]' ? title : `<b>${title}</b>`} `,
+      [TITLE]: `[${esc(ts(data))}] ${isPrimary ? `<b>${title}</b>` : title} `,
       body: [...rendered, {[TITLE]: 'raw', body: raw}],
-      open: data._purpose !== '[meta]',
+      open: isPrimary,
     };
   } else if (data?._kind === 'response') {
     const payload = renderPayload(
@@ -216,9 +226,9 @@ function render(data, label) {
     delete raw._kind;
     const title = `RESPONSE${id}${purpose}`;
     return {
-      [TITLE]: `[${esc(ts(data))}] ${data._purpose === '[meta]' ? title : `<b>${title}</b>`} `,
+      [TITLE]: `[${esc(ts(data))}] ${isPrimary ? `<b>${title}</b>` : title} `,
       body: [...payload, {[TITLE]: 'raw', body: raw}],
-      open: data._purpose !== '[meta]',
+      open: isPrimary,
     };
   } else if (data?._kind === 'error') {
     const raw = {...data};
