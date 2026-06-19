@@ -118,15 +118,16 @@ function renderPayload(elements) {
     const eMessage = deltaField(e, 'message') ?? deltaField(e, 'delta');
     const eName = deltaField(e, 'name');
     const eType = deltaField(e, 'type');
+    const eRole = deltaField(e, 'role');
     const marker = deltaMarker(e);
     if (e === '...' || e === '...*' || e === '---') {
       continue;
-    } else if (eMessage && typeof eMessage === 'object') {
-      // OpenAI chat-completion choices wrap the assistant message in here
+    } else if (eMessage && typeof eMessage === 'object' && !Array.isArray(eMessage)) {
+      // OpenAI chat-completion choices wrap the assistant message in an object here.
       payload.push(...renderPayload([eMessage]));
     } else if (
       eType === 'message' ||
-      (eType === undefined && e.role !== undefined && eContent !== undefined)
+      (eType === undefined && eRole !== undefined && eContent !== undefined)
     ) {
       const contents = Array.isArray(eContent) ? eContent : [eContent];
       contents.forEach(content => {
@@ -135,7 +136,7 @@ function renderPayload(elements) {
         }
         const text = contentText(Array.isArray(eContent) ? [content] : content);
         payload.push({
-          [TITLE]: `${marker}message(${esc(e.role)}): `,
+          [TITLE]: `${marker}message(${esc(eRole)}): `,
           [INLINE]: esc(short(text)),
           body: text,
         });
@@ -166,7 +167,7 @@ function renderPayload(elements) {
         const raw = eType === 'function_call' ? JSON.parse(eArguments) : eInput;
         const rawArg = raw?.cmd ?? raw?.pattern ?? raw;
         arg = typeof rawArg === 'string' ? rawArg : JSON.stringify(rawArg ?? '');
-      } catch (e) {
+      } catch {
         arg = '...';
       }
       payload.push({
